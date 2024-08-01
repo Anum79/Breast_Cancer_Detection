@@ -3,6 +3,41 @@ import numpy as np
 import tensorflow as tf
 import cv2
 from PIL import Image
+import requests
+import os
+
+def download_model_from_gdrive():
+    file_id = '1igSTxj4kvQWDJYD_UhbT5rvCcs_tx9gR'  # Replace with your file ID
+    destination = 'model.h5'
+    URL = "https://docs.google.com/uc?export=download"
+
+    session = requests.Session()
+    response = session.get(URL, params={'id': file_id}, stream=True)
+    token = get_confirm_token(response)
+
+    if token:
+        params = {'id': file_id, 'confirm': token}
+        response = session.get(URL, params=params, stream=True)
+
+    save_response_content(response, destination)
+
+def get_confirm_token(response):
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            return value
+    return None
+
+def save_response_content(response, destination):
+    CHUNK_SIZE = 32768
+    with open(destination, "wb") as f:
+        for chunk in response.iter_content(CHUNK_SIZE):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+
+# Download the model if it does not exist
+if not os.path.exists("model.h5"):
+    with st.spinner("Downloading model..."):
+        download_model_from_gdrive()
 
 # Load the pre-trained model
 model = tf.keras.models.load_model('model.h5')
